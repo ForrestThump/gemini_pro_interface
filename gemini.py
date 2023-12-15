@@ -9,7 +9,7 @@ from threading import Thread, Event
 import time
 
 import google.generativeai as genai
-from google.generativeai.types.generation_types import StopCandidateException  # Import the exception class
+from google.generativeai.types.generation_types import StopCandidateException, BlockedPromptException  # Import the exception class
 
 from IPython.display import display
 from IPython.display import Markdown
@@ -47,7 +47,7 @@ def spinner(stop_event):
             if stop_event.is_set():
                 return
             print(indicator, end='', flush=True)
-            time.sleep(0.2)
+            time.sleep(0.15)
             print('\b', end='')
 
 def save_chat_history(chat):
@@ -62,23 +62,28 @@ def save_chat_history(chat):
     with open(filename, "a") as text_file:
         text_file.write(chat_string)
 
+    print("Chat saved in file: " + filename + "\n")
+
+
 def print_help():
     print("command: exit")
     print("         closes program and flushes context\n")
     print("command: print")
-    print("         export the conversation history as a text file and closes program\n")
+    print("         export the conversation history as a text file\n")
 
 while True:
     prompt = input(get_prefix())
 
-    if prompt == "help":
+    if prompt in ["help", "-h", "--help"]:
        print_help()
        continue
 
     if prompt in ["exit", "print", "export"]:
         if prompt != "exit":
             save_chat_history(chat)
-        break
+            continue
+        else:
+            break
 
     stop_event = Event()
     spinner_thread = Thread(target=spinner, args=(stop_event,))
@@ -88,19 +93,24 @@ while True:
         response = chat.send_message(prompt)
     except StopCandidateException as e:
         pass
+        print("Stop candidate exception thrown...")
         # Debug here. Try to extract the response.
         # Extract and print the text from the exception
         response_content = e.args[0].content.parts[0].text
-        # print(response_content)
-    finally:
-        # This will always execute, stopping the spinner and continuing the loop
+    except BlockedPromptException as e:        
         stop_event.set()
         spinner_thread.join()
+        print("Prompt blocked.")
+        reason = e.args[0].BlockReason
+        continue
+    
+    stop_event.set()
+    spinner_thread.join()
 
-        if 'response' in locals():
-            to_markdown(response.text)
+    if 'response' in locals():
+        #to_markdown(response.text)
 
-            for chunk in response:
-                print("_"*80 + "\n")
-                print(chunk.text)
-                print("_"*80)
+        for chunk in response:
+            print("_"*80 + "\n")
+            print(chunk.text)
+            print("_"*80)
