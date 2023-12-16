@@ -6,9 +6,11 @@ import threading
 import os
 import datetime
 
+import subprocess
+
 import google.generativeai as genai
 from google.generativeai.types.generation_types import StopCandidateException
-
+from google.api_core.exceptions import InvalidArgument
 # Configure your API key and model
 
 try:
@@ -24,6 +26,9 @@ chat = model.start_chat(history=[])
 def update_key(input):
     genai.configure(api_key=input)
 
+    if os.name == "nt": 
+        subprocess.run(['setx', 'gemini_key', input], check=True)
+
 def send_message():
     prompt = entry.get("1.0", tk.END).strip()
     entry.delete("1.0", tk.END)
@@ -34,7 +39,7 @@ def send_message():
         root.destroy()
         return
     
-    loading_label.config(text="Loading...")
+    #loading_label.config(text="Loading...")
 
     try:
         response = chat.send_message(prompt)
@@ -42,8 +47,12 @@ def send_message():
     except StopCandidateException as e:
         response_content = e.args[0].candidates[0].content.parts[0].text
         update_conversation(f"Exception: {response_content}")
+    except InvalidArgument as e:
+        error_message = str(e)
+        update_conversation(f"Exception: {error_message}")
     finally:
-        loading_label.config(text="")
+        pass
+        #loading_label.config(text="")
 
 def update_conversation(text):
     try:
@@ -72,6 +81,7 @@ def open_settings():
     def submit_api_key():
         entered_key = api_key_entry.get()
         update_key(entered_key)
+        settings_window.destroy()
 
     # Submit button for the API key
     submit_button = tk.Button(settings_window, text="Submit", command=submit_api_key)
