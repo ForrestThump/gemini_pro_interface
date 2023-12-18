@@ -4,15 +4,6 @@ import tkinter as tk
 from tkinter import scrolledtext
 import threading
 import os
-import datetime
-
-import subprocess
-
-import queue
-
-import google.generativeai as genai
-from google.generativeai.types.generation_types import StopCandidateException
-from google.api_core.exceptions import InvalidArgument
 
 from api_object import ApiObject
 from text_format import TextFormatter
@@ -22,10 +13,7 @@ try:
 except KeyError:
     GEMINI_KEY = None
 
-genai.configure(api_key=GEMINI_KEY)
 model_name = "gemini-pro"
-model = genai.GenerativeModel(model_name)
-chat = model.start_chat(history=[])
 
 def send_message(apio, text_formatter):
     while send_button.cget("state") == "disabled":

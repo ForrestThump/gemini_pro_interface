@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 
-import pathlib
 import textwrap
-import os
-import datetime
 from api_object import ApiObject
 
 from threading import Thread, Event
