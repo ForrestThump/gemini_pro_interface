@@ -4,11 +4,11 @@ import pathlib
 import textwrap
 import os
 import datetime
+from api_object import ApiObject
 
 from threading import Thread, Event
 import time
 
-import google.generativeai as genai
 from google.generativeai.types.generation_types import StopCandidateException, BlockedPromptException  # Import the exception class
 
 from IPython.display import display
@@ -17,11 +17,6 @@ from IPython.display import Markdown
 def to_markdown(text):
     text = text.replace('•', '  *')
     return Markdown(textwrap.indent(text, '> ', predicate=lambda _: True))
-
-# Replace the os.environ["gemini_key"] part with your API key
-GEMINI_KEY = os.environ["gemini_key"]
-
-genai.configure(api_key=GEMINI_KEY)
 
 # models/chat-bison-001
 # models/text-bison-001
@@ -33,12 +28,10 @@ genai.configure(api_key=GEMINI_KEY)
 
 model_name = "gemini-pro"
 
-model = genai.GenerativeModel(model_name)
-
-chat = model.start_chat(history = [])
+user_name = "user"
 
 def get_prefix():
-    return ("\n(" + model_name + "): ")\
+    return ("\n(" + user_name + "): ")\
     
 def spinner(stop_event):
     indicators = ['/', '-', '\\', '|']
@@ -50,28 +43,16 @@ def spinner(stop_event):
             time.sleep(0.15)
             print('\b', end='')
 
-def save_chat_history(chat):
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    filename = f"chat_history_{timestamp}.txt"
-
-    chat_string = ""
-    
-    for message in chat.history:
-        chat_string += f"{message.role}: {message.parts[0].text}\n"
-
-    with open(filename, "a") as text_file:
-        text_file.write(chat_string)
-
-    print("Chat saved in file: " + filename + "\n")
-
-
 def print_help():
     print("command: exit")
     print("         closes program and flushes context\n")
     print("command: print")
     print("         export the conversation history as a text file\n")
 
+apio = ApiObject()
+
 while True:
+
     prompt = input(get_prefix())
 
     if prompt in ["help", "-h", "--help"]:
@@ -80,7 +61,7 @@ while True:
 
     if prompt in ["exit", "print", "export"]:
         if prompt != "exit":
-            save_chat_history(chat)
+            apio.save_chat_history()
             continue
         else:
             break
@@ -90,7 +71,7 @@ while True:
     spinner_thread.start()
 
     try:
-        response = chat.send_message(prompt)
+        response = apio.send_message(prompt)
     except StopCandidateException as e:
         pass
         print("Stop candidate exception thrown...")
@@ -106,6 +87,8 @@ while True:
     
     stop_event.set()
     spinner_thread.join()
+
+    print("\n("+model_name+"): ")
 
     if 'response' in locals():
         #to_markdown(response.text)

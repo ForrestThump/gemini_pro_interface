@@ -8,63 +8,56 @@ import datetime
 
 import subprocess
 
+import queue
+
 import google.generativeai as genai
 from google.generativeai.types.generation_types import StopCandidateException
 from google.api_core.exceptions import InvalidArgument
-# Configure your API key and model
+
+from api_object import ApiObject
+from text_format import TextFormatter
 
 try:
     GEMINI_KEY = os.environ["gemini_key"]
 except KeyError:
-    GEMINI_KEY = None  # or handle it in some other way
+    GEMINI_KEY = None
 
 genai.configure(api_key=GEMINI_KEY)
 model_name = "gemini-pro"
 model = genai.GenerativeModel(model_name)
 chat = model.start_chat(history=[])
 
-def update_key(input):
-    genai.configure(api_key=input)
+def send_message(apio, text_formatter):
+    while send_button.cget("state") == "disabled":
+        pass
 
-    if os.name == "nt": 
-        subprocess.run(['setx', 'gemini_key', input], check=True)
-
-def send_message():
     prompt = entry.get("1.0", tk.END).strip()
     entry.delete("1.0", tk.END)
     if prompt in ["exit", "print", "export"]:
         if prompt != "exit":
-            save_chat_history(chat)
+            apio.save_chat_history()
             return
         root.destroy()
         return
     
-    #loading_label.config(text="Loading...")
+    update_conversation(text_formatter.query_to_text(prompt))
 
-    try:
-        response = chat.send_message(prompt)
-        update_conversation(f"{get_prefix()}{prompt}\n{response.text}")
-    except StopCandidateException as e:
-        response_content = e.args[0].candidates[0].content.parts[0].text
-        update_conversation(f"Exception: {response_content}")
-    except InvalidArgument as e:
-        error_message = str(e)
-        update_conversation(f"Exception: {error_message}")
-    finally:
-        pass
-        #loading_label.config(text="")
+    root.update()
 
-def update_conversation(text):
-    try:
-        conversation.config(state='normal')  # Enable editing of the widget
-        conversation.insert(tk.END, text + "\n")
-        conversation.see(tk.END)
-    except Exception as e:
-        print(f"Error updating conversation: {e}")
-    finally:
-        conversation.config(state='disabled')  # Disable editing again
+    def send_message_thru_api():
+        response = apio.send_message(prompt)
+        root.after(0, lambda: update_conversation(text_formatter.response_to_text(response)))
 
-def open_settings():
+    thread = threading.Thread(target=send_message_thru_api)
+    thread.start()
+
+def update_conversation(response_str: str):
+    conversation.config(state='normal')  # Enable editing of the widget
+    conversation.insert(tk.END, response_str + "\n")
+    conversation.see(tk.END)
+    conversation.config(state='disabled')  # Disable editing again
+    
+def open_settings(apio):
     settings_window = tk.Toplevel(root)
     settings_window.title("Settings")
     settings_window.geometry("300x150")  # Adjust the size as needed
@@ -80,27 +73,15 @@ def open_settings():
     # Function to handle the submission of the API key
     def submit_api_key():
         entered_key = api_key_entry.get()
-        update_key(entered_key)
+        apio.update_key(entered_key)
         settings_window.destroy()
 
     # Submit button for the API key
     submit_button = tk.Button(settings_window, text="Submit", command=submit_api_key)
     submit_button.pack()
 
-
-
-def save_chat_history(chat):
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    filename = f"chat_history_{timestamp}.txt"
-    with open(filename, "w") as text_file:
-        for message in chat.history:
-            text_file.write(f"{message.role}: {message.parts[0].text}\n")
-
-def get_prefix():
-    return f"({model_name}): "
-
-def on_enter_key(event):
-    send_message()
+def on_enter_key(apio, text_formatter):
+    send_message(apio, text_formatter)
     return "break"
 
 def insert_newline(event):
@@ -108,7 +89,15 @@ def insert_newline(event):
         entry.insert(tk.INSERT, "\n")
     return "break"  # Prevents the default newline insertion.
 
+apio = ApiObject()
+
+text_formatter = TextFormatter("user", "gemini-pro")
+
 root = tk.Tk()
+
+# root.iconbitmap('icon.ico')
+# TODO set icon to the bard logo (must be a .ico file)
+
 root.title("Chat with Gemini Pro")
 
 conversation = scrolledtext.ScrolledText(root, state='disabled', wrap=tk.WORD)
@@ -119,14 +108,14 @@ entry_frame.pack(padx=10, pady=10, fill=tk.X, expand=False)
 
 entry = tk.Text(entry_frame, height=4, wrap=tk.WORD)
 
-entry.bind("<Return>", on_enter_key)
+entry.bind("<Return>", lambda event: on_enter_key(apio=apio, text_formatter=text_formatter))
 entry.bind("<Control-Return>", insert_newline)
 entry.bind("<Shift-Return>", insert_newline)
 
 button_frame = tk.Frame(entry_frame)
 button_frame.pack(side=tk.RIGHT, padx=5, fill=tk.Y)
 
-send_button = tk.Button(button_frame, text="Send", command=send_message)
+send_button = tk.Button(button_frame, text="Send", command=lambda: send_message(apio, text_formatter))
 send_button.pack(side=tk.TOP)
 
 settings_button = tk.Button(button_frame, text="Settings", command=open_settings)
