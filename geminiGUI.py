@@ -83,7 +83,6 @@ text_formatter = TextFormatter("user", "gemini-pro")
 
 root = tk.Tk()
 
-# root.iconbitmap('icon.ico')
 # TODO set icon to the bard logo (must be a .ico file)
 
 root.title("Chat with Gemini Pro")
