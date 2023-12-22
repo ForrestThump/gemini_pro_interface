@@ -8,14 +8,13 @@ import os
 from api_object import ApiObject
 from text_format import TextFormatter
 
-try:
-    GEMINI_KEY = os.environ["gemini_key"]
-except KeyError:
-    GEMINI_KEY = None
-
 model_name = "gemini-pro"
 
 def send_message(apio, text_formatter):
+    if apio.GEMINI_KEY is None:
+        print_no_key_error()
+        return
+
     while send_button.cget("state") == "disabled":
         pass
 
@@ -44,6 +43,12 @@ def update_conversation(response_str: str):
     conversation.insert(tk.END, response_str + "\n")
     conversation.see(tk.END)
     conversation.config(state='disabled')  # Disable editing again
+
+
+def print_no_key_error():
+    update_conversation("No key detected!")
+    update_conversation("Use settings to set your API key.")
+
     
 def open_settings(apio):
     settings_window = tk.Toplevel(root)
@@ -110,8 +115,8 @@ settings_button.pack(side=tk.BOTTOM)
 
 entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
-if GEMINI_KEY is None:
-    update_conversation("No key detected!")
-    update_conversation("Use settings to set your API key.")
+if apio.GEMINI_KEY is None:
+    print_no_key_error
+    
 
 root.mainloop()
