@@ -5,6 +5,7 @@ from api_object import ApiObject
 
 from threading import Thread, Event
 import time
+from yaspin import yaspin
 
 from google.generativeai.types.generation_types import StopCandidateException, BlockedPromptException  # Import the exception class
 
@@ -29,16 +30,14 @@ user_name = "user"
 
 def get_prefix():
     return ("\n(" + user_name + "): ")\
-    
+
 def spinner(stop_event):
     indicators = ['/', '-', '\\', '|']
     while not stop_event.is_set():
         for indicator in indicators:
-            if stop_event.is_set():
-                return
             print(indicator, end='', flush=True)
-            time.sleep(0.15)
-            print('\b', end='')
+            time.sleep(0.11)
+            print('\b', end='', flush=True)
 
 def print_help():
     print("command: exit")
@@ -78,19 +77,20 @@ while True:
     except BlockedPromptException as e:        
         stop_event.set()
         spinner_thread.join()
+        print('\b', end='', flush=True)
         print("Prompt blocked.")
         reason = e.args[0].BlockReason
         continue
     
     stop_event.set()
+
     spinner_thread.join()
 
     print("\n("+model_name+"): ")
 
     if 'response' in locals():
-        #to_markdown(response.text)
-
         for chunk in response:
             print("_"*80 + "\n")
             print(chunk.text)
             print("_"*80)
+

@@ -83,7 +83,7 @@ text_formatter = TextFormatter("user", "gemini-pro")
 
 root = tk.Tk()
 
-# root.iconbitmap('icon.ico')
+root.iconbitmap('GeminiProLogo.ico')
 # TODO set icon to the bard logo (must be a .ico file)
 
 root.title("Chat with Gemini Pro")
@@ -106,7 +106,7 @@ button_frame.pack(side=tk.RIGHT, padx=5, fill=tk.Y)
 send_button = tk.Button(button_frame, text="Send", command=lambda: send_message(apio, text_formatter))
 send_button.pack(side=tk.TOP)
 
-settings_button = tk.Button(button_frame, text="Settings", command=open_settings)
+settings_button = tk.Button(button_frame, text="Settings", command=lambda: open_settings(apio))
 settings_button.pack(side=tk.BOTTOM)
 
 entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
