@@ -7,8 +7,14 @@ from google.generativeai.types.generation_types import StopCandidateException, B
 
 class ApiObject:
     def __init__(self) -> None:
-        self.GEMINI_KEY = os.environ["gemini_key"]
+
+        try:
+            self.GEMINI_KEY = os.environ["gemini_key"]
+        except KeyError:
+            self.GEMINI_KEY = None
+
         genai.configure(api_key=self.GEMINI_KEY)
+        
         self.model_names = ["chat-bison-001", 
                             "text-bison-001",
                             "embedding-gecko-001",
