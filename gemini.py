@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import sys
+
 import textwrap
 from api_object import ApiObject
 
@@ -47,9 +49,26 @@ def print_help():
 
 apio = ApiObject()
 
+def parse_args():
+    if len(sys.argv) < 2:
+        return False, ""
+    else:
+        my_str: str = ""
+        for i in range (1, len(sys.argv)):
+            my_str += sys.argv[i]
+            if i < len(sys.argv) - 1:
+                my_str += " "
+    return True, my_str
+
+args_exist, first_prompt = parse_args()
+
 while True:
 
-    prompt = input(get_prefix())
+    if args_exist:
+        prompt = first_prompt
+        args_exist = False
+    else:
+        prompt = input(get_prefix())
 
     if prompt in ["help", "-h", "--help"]:
        print_help()
