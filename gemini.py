@@ -5,7 +5,6 @@ import sys
 import textwrap
 from api_object import ApiObject
 
-from threading import Thread, Event
 import time
 from yaspin import yaspin
 
@@ -32,14 +31,6 @@ user_name = "user"
 
 def get_prefix():
     return ("\n(" + user_name + "): ")\
-
-def spinner(stop_event):
-    indicators = ['/', '-', '\\', '|']
-    while not stop_event.is_set():
-        for indicator in indicators:
-            print(indicator, end='', flush=True)
-            time.sleep(0.11)
-            print('\b', end='', flush=True)
 
 def print_help():
     print("command: exit")
@@ -80,30 +71,25 @@ while True:
             continue
         else:
             break
-
-    stop_event = Event()
-    spinner_thread = Thread(target=spinner, args=(stop_event,))
-    spinner_thread.start()
+    
+    spinner = yaspin(color="magenta")
+    spinner.start()
 
     try:
         response = apio.send_message(prompt)
     except StopCandidateException as e:
         pass
         print("Stop candidate exception thrown...")
-        # Debug here. Try to extract the response.
-        # Extract and print the text from the exception
+
         response_content = e.args[0].content.parts[0].text
     except BlockedPromptException as e:        
-        stop_event.set()
-        spinner_thread.join()
         print('\b', end='', flush=True)
+        spinner.stop()
         print("Prompt blocked.")
         reason = e.args[0].BlockReason
         continue
-    
-    stop_event.set()
 
-    spinner_thread.join()
+    spinner.stop()
 
     print("\n("+model_name+"): ")
 
