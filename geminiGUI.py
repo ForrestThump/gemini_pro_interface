@@ -6,6 +6,7 @@ from tkinter import scrolledtext
 import threading
 import os
 
+
 from api_object import ApiObject
 from text_format import TextFormatter
 

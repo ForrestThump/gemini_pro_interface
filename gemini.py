@@ -13,22 +13,21 @@ from google.generativeai.types.generation_types import StopCandidateException, B
 from IPython.display import display
 from IPython.display import Markdown
 
-PREPROMPT = "Please consider all relevant information, and provide a comprehensive and informative response to my queries. "
+from datetime import datetime
+
+# Current date and time preprompt
+now = datetime.now()
+date_time_str = now.strftime("%Y-%m-%d %H:%M:%S")
+PREPROMPT = "For context, the time is " + date_time_str + " (year-month-day hours:minutes:seconds format). "
+
+# The prior preprompt isn't actually useful, because the LLM doesn't care if you tell it the current data and time.
+PREPROMPT = ""
+
+# Helps prompt the LLM to behave more like the bard.google.com interface.
+PREPROMPT += "Please consider all relevant information, and provide a comprehensive and informative response to my queries. "
 
 # Remove the comment to turn off the preprompt and receive more laconic answers.
 # PREPROMPT = ""
-
-def to_markdown(text):
-    text = text.replace('•', '  *')
-    return Markdown(textwrap.indent(text, '> ', predicate=lambda : True))
-
-# models/chat-bison-001
-# models/text-bison-001
-# models/embedding-gecko-001
-# models/gemini-pro
-# models/gemini-pro-vision
-# models/embedding-001
-# models/aqa
 
 model_name = "gemini-pro"
 
@@ -42,6 +41,8 @@ def print_help():
     print("         closes program and flushes context\n")
     print("command: print")
     print("         export the conversation history as a text file\n")
+    print("command: clear")
+    print("         clears current chat context\n")
 
 apio = ApiObject()
 
@@ -56,8 +57,9 @@ def parse_args():
                 my_str += " "
     return True, my_str
 
-args_exist, first_prompt = parse_args()
+spinner = yaspin(color="magenta")
 
+args_exist, first_prompt = parse_args()
 is_start = True
 
 while True:
@@ -67,8 +69,6 @@ while True:
         is_start = False
     else:
         preprompt = ""
-
-    
 
     if args_exist:
         prompt = first_prompt
@@ -80,25 +80,26 @@ while True:
        print_help()
        continue
 
-    if prompt in ["exit", "print", "export"]:
-        if prompt != "exit":
+    if prompt in ["exit", "print", "export", "clear", "clean"]:
+        if prompt == "print" or prompt == "export":
             apio.save_chat_history()
+            continue
+        elif prompt == "clear" or prompt == "clean":
+            apio.refresh_history()
             continue
         else:
             break
-    
-    spinner = yaspin(color="magenta")
+
     spinner.start()
 
     try:
         response = apio.send_message(preprompt + prompt)
     except StopCandidateException as e:
-        pass
+        spinner.stop()
         print("Stop candidate exception thrown...")
-
         response_content = e.args[0].content.parts[0].text
+        continue
     except BlockedPromptException as e:        
-        print('\b', end='', flush=True)
         spinner.stop()
         print("Prompt blocked.")
         reason = e.args[0].BlockReason
