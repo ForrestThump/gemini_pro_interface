@@ -13,9 +13,14 @@ from google.generativeai.types.generation_types import StopCandidateException, B
 from IPython.display import display
 from IPython.display import Markdown
 
+PREPROMPT = "Please consider all relevant information, and provide a comprehensive and informative response to my queries. "
+
+# Remove the comment to turn off the preprompt and receive more laconic answers.
+# PREPROMPT = ""
+
 def to_markdown(text):
     text = text.replace('•', '  *')
-    return Markdown(textwrap.indent(text, '> ', predicate=lambda _: True))
+    return Markdown(textwrap.indent(text, '> ', predicate=lambda : True))
 
 # models/chat-bison-001
 # models/text-bison-001
@@ -53,7 +58,17 @@ def parse_args():
 
 args_exist, first_prompt = parse_args()
 
+is_start = True
+
 while True:
+
+    if is_start:
+        preprompt = PREPROMPT
+        is_start = False
+    else:
+        preprompt = ""
+
+    
 
     if args_exist:
         prompt = first_prompt
@@ -76,7 +91,7 @@ while True:
     spinner.start()
 
     try:
-        response = apio.send_message(prompt)
+        response = apio.send_message(preprompt + prompt)
     except StopCandidateException as e:
         pass
         print("Stop candidate exception thrown...")
