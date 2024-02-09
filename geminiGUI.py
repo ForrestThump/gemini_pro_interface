@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-from spinners import Spinner
 import tkinter as tk
 from tkinter import scrolledtext
 import threading
